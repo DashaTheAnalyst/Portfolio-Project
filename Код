@@ -1,0 +1,68 @@
+import pandas as pd
+import matplotlib.pyplot as plt
+
+# Загружаем данные из Excel:
+file_path = 'Otvety-respondentov-1.xlsx'
+sheet_name = 'Ответы на форму' 
+
+try:
+    df = pd.read_excel(file_path, sheet_name='Ответы на форму')
+except FileNotFoundError:
+    print(f"Ошибка: Файл не найден по пути {file_path}. Пожалуйста, проверьте путь.")
+    exit()
+except Exception as e:
+    print(f"Произошла ошибка при чтении файла: {e}")
+    exit()
+
+# Определили названия колонок
+col_bought_apartment = '1. Покупали ли Вы когда-нибудь квартиру?'
+col_preferred_builder = '5. Выберите одного предпочитаемого Вами застройщика новостроек в г. Москва.'
+
+# Проверяем, существуют ли нужные колонки в DataFrame
+if col_bought_apartment not in df.columns or col_preferred_builder not in df.columns:
+    print(f"Ошибка: Одна или обе колонки ('{col_bought_apartment}', '{col_preferred_builder}') не найдены в файле Excel.")
+    print(f"Доступные колонки: {df.columns.tolist()}")
+    exit()
+
+# Очистка данных - уберем пропуски из интересующих колонок
+# Проверим, что в колонках нет только пропусков перед dropna()
+if df[col_bought_apartment].isnull().all() or df[col_preferred_builder].isnull().all():
+    print("Ошибка: Одна или обе интересующие колонки содержат только пропущенные значения.")
+    exit()
+
+df_clean = df[[col_bought_apartment, col_preferred_builder]].dropna()
+
+# Проверяем, остались ли данные после очистки
+if df_clean.empty:
+    print("Ошибка: После удаления пропусков не осталось данных для анализа.")
+    exit()
+
+# Частота покупки квартиры
+# Убедимся, что индексы являются строками для корректного отображения на графике
+freq_purchase = df_clean[col_bought_apartment].value_counts().sort_index()
+freq_purchase.index = freq_purchase.index.astype(str) # Преобразуем индекс в строку
+
+# Частота предпочтений застройщиков
+# Убедимся, что индексы являются строками для корректного отображения на графике
+freq_builders = df_clean[col_preferred_builder].value_counts().sort_values(ascending=False)
+freq_builders.index = freq_builders.index.astype(str) # Преобразуем индекс в строку
+
+# Построение диаграммы для частоты покупки квартиры
+plt.figure(figsize=(10, 4))
+freq_purchase.plot(kind='bar', color='skyblue')
+plt.title('Частота покупки квартиры')
+plt.xlabel('Ответы')
+plt.ylabel('Количество респондентов')
+plt.xticks(rotation=45, ha='right') # ha='right' для лучшего выравнивания при повороте
+plt.tight_layout() # Автоматически корректирует параметры подграфиков для плотного размещения
+plt.show()
+
+# Построение диаграммы для предпочтений застройщиков
+plt.figure(figsize=(12, 6))
+freq_builders.plot(kind='bar', color='coral')
+plt.title('Предпочитаемые застройщики')
+plt.xlabel('Застройщик')
+plt.ylabel('Количество упоминаний')
+plt.xticks(rotation=45, ha='right') # ha='right' для лучшего выравнивания при повороте
+plt.tight_layout()
+plt.show()
